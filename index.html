@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Max AI Assistant</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+  :root {
+    --bg-main: #07041a;
+    --chat-bg: rgba(14,8,40, 0.45);
+    --chat-border: rgba(150,110,255, 0.25);
+    --chat-glow-1: rgba(123,44,240, 0.3);
+    --chat-glow-2: rgba(90,30,200, 0.2);
+    --header-bg-1: rgba(123,44,240,0.15);
+    --header-bg-2: rgba(90,30,200,0.15);
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-muted: #888888;
+    --bot-bg-1: rgba(123,44,240,0.15);
+    --bot-bg-2: rgba(56,182,255,0.15);
+    --bot-border: rgba(123,44,240,0.3);
+    --input-bg: rgba(255,255,255,0.05);
+    --input-border: rgba(150,110,255,0.2);
+    --panel-bg: rgba(14,8,40, 0.95);
+    --online-color: #15dd0e;
+  }
+  body.light-mode {
+    --bg-main: #eef5ff;
+    --chat-bg: rgba(255,255,255, 0.55);
+    --chat-border: rgba(110,40,200, 0.25);
+    --header-bg-1: rgba(123,44,240,0.1);
+    --header-bg-2: rgba(90,30,200,0.1);
+    --text-primary: #1a0a45;
+    --text-secondary: #3a3a6c;
+    --text-muted: #7788bb;
+    --bot-bg-1: rgba(123,44,240,0.12);
+    --bot-bg-2: rgba(56,182,255,0.12);
+    --bot-border: rgba(110,40,200,0.3);
+    --input-bg: rgba(255,255,255,0.7);
+    --input-border: rgba(130,110,255,0.3);
+    --panel-bg: rgba(255,255,255, 0.95);
+  }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg-main);
+    display: flex; justify-content: center; align-items: center;
+    position: relative; transition: background 0.5s ease;
+  }
+  body::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 20% 30%, rgba(123,92,255,0.2), transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(56,182,255,0.2), transparent 50%);
+    animation: bgMove 12s ease-in-out infinite alternate; z-index: 0;
+  }
+  @keyframes bgMove { 0% { transform: scale(1) rotate(0deg); } 100% { transform: scale(1.2) rotate(10deg); } }
+  .chat-wrapper {
+    position: relative; z-index: 2;
+    width: 420px; height: 640px;
+    max-width: 95vw; max-height: 95vh;
+    background: var(--chat-bg);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border-radius: 24px; border: 1px solid var(--chat-border);
+    display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 0 60px var(--chat-glow-1), 0 0 120px var(--chat-glow-2);
+    animation: floaty 5s ease-in-out infinite;
+  }
+  @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  .chat-header {
+    padding: 14px 18px;
+    background: linear-gradient(90deg, var(--header-bg-1), var(--header-bg-2));
+    color: var(--text-primary); font-weight: bold;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--chat-border);
+    flex-shrink: 0; z-index: 3;
+  }
+  .robot-avatar {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #7b2cf0, #38b6ff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(123,44,240,0.6);
+    animation: avatarPulse 2s ease-in-out infinite;
+  }
+  @keyframes avatarPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(123,44,240,0.6); }
+    50% { box-shadow: 0 0 30px rgba(56,182,255,0.8); }
+  }
+  .header-info h2 {
+    font-size: 22px; font-weight: 800; letter-spacing: 2px;
+    color: #8cf3ee;
+    text-shadow: 0 0 10px rgba(140,200,255, 0.8), 0 0 20px rgba(123,44,240,0.6);
+    line-height: 1.1;
+  }
+  .header-info p {
+    font-size: 11px; color: var(--online-color); font-weight: 600;
+    display: flex; align-items: center; gap: 5px; margin-top: 3px;
+  }
+  .dot {
+    width: 7px; height: 7px; background: var(--online-color);
+    border-radius: 50%; box-shadow: 0 0 10px var(--online-color);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
+  .header-actions { margin-left: auto; display: flex; gap: 8px; }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--input-bg); border: 1px solid var(--input-border);
+    color: var(--text-primary); cursor: pointer; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s; flex-shrink: 0;
+  }
+  .icon-btn:hover { background: rgba(123,44,240,0.3); transform: scale(1.1); }
+  .chat-body {
+    flex: 1; padding: 18px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px;
+    -webkit-overflow-scrolling: touch; position: relative; z-index: 3;
+  }
+  .chat-body::-webkit-scrollbar { width: 6px; }
+  .chat-body::-webkit-scrollbar-thumb { background: linear-gradient(#7b2cf0, #38b6ff); border-radius: 3px; }
+  .msg {
+    max-width: 78%; padding: 12px 16px; border-radius: 18px;
+    font-size: 14px; line-height: 1.5; word-wrap: break-word;
+    color: var(--text-primary); position: relative;
+  }
+  .user {
+    background: linear-gradient(135deg, #7b2cf0, #38b6ff);
+    color: #fff; align-self: flex-end;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 20px rgba(123,44,240,0.4);
+    animation: userMsgIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes userMsgIn {
+    0% { opacity: 0; transform: translate3d(30px, 20px, 0) scale(0.92); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  }
+  .bot {
+    background: linear-gradient(135deg, var(--bot-bg-1), var(--bot-bg-2));
+    align-self: flex-start; border: 1px solid var(--bot-border);
+    border-bottom-left-radius: 4px;
+    animation: botMsgIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes botMsgIn {
+    0% { opacity: 0; transform: translate3d(-30px, 20px, 0) scale(0.92); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  }
+  .typing {
+    display: flex; gap: 5px; padding: 14px 18px;
+    background: rgba(123,44,240,0.1); border-radius: 18px;
+    border-bottom-left-radius: 4px; align-self: flex-start;
+    border: 1px solid var(--bot-border);
+  }
+  .typing span {
+    width: 8px; height: 8px;
+    background: linear-gradient(135deg, #7b2cf0, #38b6ff);
+    border-radius: 50%; animation: typingBounce 1.4s infinite ease-in-out;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+    30% { transform: translateY(-10px) scale(1.15); opacity: 1; }
+  }
+  .chat-input {
+    display: flex; padding: 14px;
+    background: rgba(0,0,0,0.35); gap: 8px;
+    border-top: 1px solid var(--chat-border);
+    flex-shrink: 0; position: relative; z-index: 3;
+    align-items: center;
+  }
+  body.light-mode .chat-input { background: rgba(255,255,255,0.4); }
+  .chat-input input {
+    flex: 1; padding: 14px 18px;
+    border: 1px solid var(--input-border);
+    border-radius: 25px; background: var(--input-bg);
+    color: var(--text-primary); outline: none;
+    font-size: 16px; min-width: 0;
+  }
+  .chat-input input::placeholder { color: var(--text-muted); }
+  .emoji-btn {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg); color: var(--text-primary);
+    cursor: pointer; font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .emoji-btn:hover { background: rgba(123,44,240,0.25); transform: scale(1.1); }
+  .send-btn {
+    width: 42px; height: 42px; border: none; border-radius: 50%;
+    background: linear-gradient(135deg, #7b2cf0, #38b6ff);
+    color: #fff; cursor: pointer; font-weight: bold; font-size: 16px;
+    box-shadow: 0 0 20px rgba(123,44,240,0.4);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .send-btn:hover { transform: scale(1.1); box-shadow: 0 0 30px rgba(123,44,240,0.8); }
+  .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .emoji-picker {
+    position: absolute; bottom: 80px; right: 14px;
+    width: 300px; max-height: 260px;
+    background: var(--panel-bg); border: 1px solid var(--chat-border);
+    border-radius: 16px; padding: 12px; display: none;
+    z-index: 20; box-shadow: 0 0 40px var(--chat-glow-1); overflow: hidden;
+  }
+  .emoji-picker.active { display: block; }
+  .emoji-picker h4 { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; padding-left: 4px; font-weight: 600; text-transform: uppercase; }
+  .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; max-height: 200px; overflow-y: auto; padding-right: 4px; }
+  .emoji-item { font-size: 22px; padding: 6px 0; text-align: center; cursor: pointer; border-radius: 8px; user-select: none; }
+  .emoji-item:hover { background: rgba(123,44,240,0.2); transform: scale(1.25); }
+  @media (max-width: 500px) {
+    .chat-wrapper { width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; border-radius: 0; animation: none; border: none; background: rgba(14,8,40, 0.96); }
+    body.light-mode .chat-wrapper { background: rgba(238,245,255,0.97); }
+    .chat-header { padding: 12px 14px; padding-top: max(12px, env(safe-area-inset-top)); }
+    .chat-body { padding: 14px; gap: 10px; }
+    .msg { font-size: 13.5px; padding: 10px 14px; max-width: 82%; }
+    .chat-input { padding: 10px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom)); gap: 6px; }
+    .emoji-picker { width: calc(100vw - 20px); left: 10px; right: 10px; bottom: 75px; }
+    html, body { height: 100vh; height: 100dvh; }
+    .header-info h2 { font-size: 20px; }
+    .robot-avatar { width: 40px; height: 40px; font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="chat-wrapper">
+  <div class="chat-header">
+    <div class="robot-avatar">🤖</div>
+    <div class="header-info">
+      <h2>MAX AI</h2>
+      <p><span class="dot"></span> <span id="statusText">Online</span></p>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    </div>
+  </div>
+
+  <div class="chat-body" id="chatBody">
+    <div class="msg bot">Hi! Naan <b>Max</b> 🤖<br>Enna help venum sollunga!</div>
+  </div>
+
+  <div class="emoji-picker" id="emojiPicker">
+    <h4>😊 Emojis</h4>
+    <div class="emoji-grid" id="emojiGrid"></div>
+  </div>
+
+  <div class="chat-input">
+    <button class="emoji-btn" onclick="toggleEmoji()" title="Emojis">😊</button>
+    <input type="text" id="userInput" placeholder="Type your message..." autocomplete="off" />
+    <button class="send-btn" id="sendBtn" onclick="sendMsg()">➤</button>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://max-ai-rust.vercel.app/api/chat';
+const MODEL = 'gpt-oss:120b-cloud';
+
+function applyTheme(theme) {
+  if(theme === 'light') {
+    document.body.classList.add('light-mode');
+    document.getElementById('themeBtn').textContent = '☀️';
+  } else {
+    document.body.classList.remove('light-mode');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+  localStorage.setItem('ai_theme', theme);
+}
+function toggleTheme() {
+  const current = localStorage.getItem('ai_theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+applyTheme(localStorage.getItem('ai_theme') || 'dark');
+
+const emojiList = ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','😋','😛','😜','🤪','😝','🤗','🤭','🤫','🤔','😐','😑','😶','😏','😒','🙄','😬','😌','😔','😪','😴','😷','🤒','🤕','🤢','🤧','😎','🤓','🧐','🤠','🥳','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🙈','🙉','🙊','👋','🤚','✋','🖖','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','👍','👎','✊','👊','👏','🙌','🙏','🤝','💪','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','💕','💞','💓','💗','💖','💘','💝','💟','💌','💋','💐','🌹','🌺','🌻','🌷','🌼','🌸','🎉','🎊','🎈','🎁','🎂','🍰','🍕','🍔','🍟','🍿','🍩','🍪','🍫','🍬','🍭','⚡','✨','💫','⭐','🌟','🔥','💥','💢','💨','💦','💤','🤖','👻','🎃','🦄','🐶','🐱','🐼','🐨','🦁','🐯','🐮','🐸','🐵','🐔','🐧','🐦','🦋'];
+function buildEmojiPicker() {
+  const grid = document.getElementById('emojiGrid');
+  emojiList.forEach(emoji => {
+    const btn = document.createElement('div');
+    btn.className = 'emoji-item';
+    btn.textContent = emoji;
+    btn.onclick = () => insertEmoji(emoji);
+    grid.appendChild(btn);
+  });
+}
+function toggleEmoji() { document.getElementById('emojiPicker').classList.toggle('active'); }
+function insertEmoji(emoji) {
+  const input = document.getElementById('userInput');
+  input.value += emoji;
+  input.focus();
+}
+document.addEventListener('click', (e) => {
+  const picker = document.getElementById('emojiPicker');
+  const emojiBtn = document.querySelector('.emoji-btn');
+  if(picker && picker.classList.contains('active')) {
+    if(!picker.contains(e.target) && !emojiBtn.contains(e.target)) {
+      picker.classList.remove('active');
+    }
+  }
+});
+buildEmojiPicker();
+
+const chatBody = document.getElementById('chatBody');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const statusText = document.getElementById('statusText');
+let busy = false;
+
+let chatHistory = [
+  { role: 'system', content: 'You are Max, a friendly AI assistant. Reply in Tanglish (Tamil + English mix) when user speaks Tanglish. Be helpful and short.' }
+];
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function sendMsg() {
+  const text = userInput.value.trim();
+  if(!text || busy) return;
+
+  busy = true;
+  sendBtn.disabled = true;
+  document.getElementById('emojiPicker').classList.remove('active');
+
+  addMsg(escapeHtml(text), 'user');
+  userInput.value = '';
+  chatHistory.push({ role: 'user', content: text });
+
+  const typingEl = showTyping();
+  statusText.textContent = 'Thinking...';
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: chatHistory,
+        stream: false
+      })
+    });
+
+    if(!res.ok) throw new Error('Server error ' + res.status);
+
+    const data = await res.json();
+    typingEl.remove();
+
+    if(data.error) throw new Error(data.error);
+
+    const reply = data.message?.content || 'No response';
+    addMsg(escapeHtml(reply).replace(/\n/g, '<br>'), 'bot');
+    chatHistory.push({ role: 'assistant', content: reply });
+    statusText.textContent = 'Online';
+
+  } catch (err) {
+    typingEl.remove();
+    addMsg('⚠️ Error: ' + escapeHtml(err.message || 'Connection failed'), 'bot');
+    statusText.textContent = 'Error';
+    console.error(err);
+  } finally {
+    busy = false;
+    sendBtn.disabled = false;
+    userInput.focus();
+  }
+}
+
+function addMsg(html, type) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.innerHTML = html;
+  chatBody.appendChild(div);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  chatBody.appendChild(div);
+  chatBody.scrollTop = chatBody.scrollHeight;
+  return div;
+}
+
+userInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendMsg(); }
+});
+sendBtn.addEventListener('mousedown', (e) => e.preventDefault());
+</script>
+</body>
+</html>
